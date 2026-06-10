@@ -32,7 +32,7 @@ function parseHargaEmasOrg(html, isoDate) {
 
   // Pattern from harga-emas.org page: 100 265.512.000 266.133.000 ... Update harga LM Antam ... Harga pembelian kembali: Rp2.576.700 /grm
   let buy100 = null;
-  const row100 = text.match(/(?:^|\s)100\s+([0-9.]{7,})\s+([0-9.]{7,})/);
+  const row100 = text.match(/(?:^|\s)(?:100\s*(?:gr|gram)?\s+)([0-9.]{7,})\s+([0-9.]{7,})/i) || text.match(/(?:^|\s)100\s+([0-9.]{7,})\s+([0-9.]{7,})/);
   if (row100) buy100 = onlyDigits(row100[1]);
 
   let buybackPerGram = null;
@@ -53,7 +53,7 @@ function parseLogamMuliaToday(html) {
   const $ = cheerio.load(html);
   const text = $('body').text().replace(/\s+/g, ' ').trim();
   const titleDate = text.match(/Harga Emas Hari Ini,\s*([^B]+?)\s+Harga di-update/i);
-  const row100 = text.match(/100\s*gr\s*([0-9,\.]+)\s*([0-9,\.]+)/i);
+  const row100 = text.match(/(?:^|\s)100\s*(?:gr|gram)\s+([0-9,.]+)\s+([0-9,.]+)/i);
   return {
     titleDate: titleDate ? titleDate[1].trim() : null,
     buy100Base: row100 ? onlyDigits(row100[1]) : null,
@@ -137,6 +137,30 @@ module.exports = async (req, res) => {
 
     const today = lmTodayHtml ? parseLogamMuliaToday(lmTodayHtml) : null;
     const buyback = lmBuybackHtml ? parseLogamMuliaBuyback(lmBuybackHtml) : null;
+
+    // Pakai data resmi ANTAM untuk tanggal hari ini bila bulan yang dibuka adalah bulan berjalan.
+    // Ini penting karena beberapa arsip history kadang hanya punya buyback, sehingga harga beli 100 gr kosong.
+    const todayIso = iso(todayJakarta.getFullYear(), todayJakarta.getMonth() + 1, todayJakarta.getDate());
+    if (year === todayJakarta.getFullYear() && month === todayJakarta.getMonth() + 1) {
+      const officialBuy100 = today?.buy100Base || today?.buy100Tax || null;
+      const officialBuyback = buyback?.buybackPerGram || null;
+      const officialRow = {
+        date: todayIso,
+        buy100: officialBuy100,
+        buy100Tax: today?.buy100Tax || null,
+        buybackPerGram: officialBuyback,
+        sell100: officialBuyback ? officialBuyback * 100 : null,
+        source: 'logammulia.com'
+      };
+      const idx = history.findIndex(r => r.date === todayIso);
+      if (idx >= 0) {
+        history[idx] = { ...history[idx], ...Object.fromEntries(Object.entries(officialRow).filter(([,v]) => v != null)) };
+      } else if (officialBuy100 || officialBuyback) {
+        history.push(officialRow);
+        history.sort((a, b) => a.date.localeCompare(b.date));
+      }
+    }
+
     const latest = history.length ? history[history.length - 1] : null;
 
     res.status(200).json({

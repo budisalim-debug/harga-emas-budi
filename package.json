@@ -1,0 +1,19 @@
+{
+  "name": "harga-emas-budi",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Web app harga emas ANTAM 100 gr dengan grafik bulanan",
+  "scripts": {
+    "dev": "vercel dev",
+    "start": "vercel dev"
+  },
+  "dependencies": {
+    "cheerio": "^1.0.0"
+  },
+  "devDependencies": {
+    "vercel": "^34.0.0"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}

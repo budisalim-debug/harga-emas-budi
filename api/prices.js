@@ -30,16 +30,24 @@ function parseHargaEmasOrg(html, isoDate) {
   const $ = cheerio.load(html);
   const text = $('body').text().replace(/\s+/g, ' ').trim();
 
-  // Pattern from harga-emas.org page: 100 265.512.000 266.133.000 ... Update harga LM Antam ... Harga pembelian kembali: Rp2.576.700 /grm
+  // Harga-Emas.org can render rows like:
+  // 100 265.512.000 266.133.000
+  // or 100 Rp2.655.120.000 Rp2.661.330.000
+  // depending on current/history page and browser rendering.
   let buy100 = null;
-  const row100 = text.match(/(?:^|\s)(?:100\s*(?:gr|gram)?\s+)([0-9.]{7,})\s+([0-9.]{7,})/i) || text.match(/(?:^|\s)100\s+([0-9.]{7,})\s+([0-9.]{7,})/);
-  if (row100) buy100 = onlyDigits(row100[1]);
+  const patterns = [
+    /(?:^|\s)100\s*(?:gr|gram)?\s+(?:Rp\s*)?([0-9.,]{7,})\s+(?:Rp\s*)?([0-9.,]{7,})/i,
+    /(?:^|\s)100\s+(?:Rp\s*)?([0-9.,]{7,})/i
+  ];
+  for (const pat of patterns) {
+    const m = text.match(pat);
+    if (m) { buy100 = onlyDigits(m[1]); break; }
+  }
 
   let buybackPerGram = null;
-  const bb = text.match(/Harga pembelian kembali:\s*Rp\s*([0-9.,]+)/i);
+  const bb = text.match(/Harga pembelian kembali:\s*Rp\s*([0-9.,]+)/i) || text.match(/Buyback[^0-9]*Rp\s*([0-9.,]+)/i);
   if (bb) buybackPerGram = onlyDigits(bb[1]);
 
-  // fallback: sometimes title/current data has Antam one gram buyback, but keep it conservative
   return {
     date: isoDate,
     buy100,
@@ -53,7 +61,8 @@ function parseLogamMuliaToday(html) {
   const $ = cheerio.load(html);
   const text = $('body').text().replace(/\s+/g, ' ').trim();
   const titleDate = text.match(/Harga Emas Hari Ini,\s*([^B]+?)\s+Harga di-update/i);
-  const row100 = text.match(/(?:^|\s)100\s*(?:gr|gram)\s+([0-9,.]+)\s+([0-9,.]+)/i);
+  const row100 = text.match(/(?:^|\s)100\s*(?:gr|gram)\s+(?:Rp\s*)?([0-9,.]+)\s+(?:Rp\s*)?([0-9,.]+)/i)
+    || text.match(/(?:^|\s)100\s+(?:Rp\s*)?([0-9,.]{7,})\s+(?:Rp\s*)?([0-9,.]{7,})/i);
   return {
     titleDate: titleDate ? titleDate[1].trim() : null,
     buy100Base: row100 ? onlyDigits(row100[1]) : null,
@@ -93,7 +102,7 @@ async function getHistory(year, month) {
   const jobs = [];
   for (let day = 1; day <= maxDay; day++) {
     const date = iso(year, month, day);
-    const url = `https://harga-emas.org/history-harga/${year}/${monthName}/${day}`;
+    const url = `https://harga-emas.org/history-harga/${year}/${monthName}/${String(day).padStart(2,'0')}`;
     jobs.push(async () => {
       try {
         const html = await fetchText(url);
@@ -129,21 +138,23 @@ module.exports = async (req, res) => {
     const month = Number(monthStr);
     if (!year || !month || month < 1 || month > 12) throw new Error('Parameter month harus format YYYY-MM, contoh 2026-06');
 
-    const [history, lmTodayHtml, lmBuybackHtml] = await Promise.all([
+    const [history, lmTodayHtml, lmBuybackHtml, hargaEmasTodayHtml] = await Promise.all([
       getHistory(year, month),
       fetchText('https://www.logammulia.com/id/harga-emas-hari-ini').catch(() => null),
-      fetchText('https://www.logammulia.com/id/sell/gold').catch(() => null)
+      fetchText('https://www.logammulia.com/id/sell/gold').catch(() => null),
+      fetchText('https://harga-emas.org/history-harga').catch(() => null)
     ]);
 
     const today = lmTodayHtml ? parseLogamMuliaToday(lmTodayHtml) : null;
     const buyback = lmBuybackHtml ? parseLogamMuliaBuyback(lmBuybackHtml) : null;
+    const hargaEmasToday = hargaEmasTodayHtml ? parseHargaEmasOrg(hargaEmasTodayHtml, iso(todayJakarta.getFullYear(), todayJakarta.getMonth() + 1, todayJakarta.getDate())) : null;
 
     // Pakai data resmi ANTAM untuk tanggal hari ini bila bulan yang dibuka adalah bulan berjalan.
     // Ini penting karena beberapa arsip history kadang hanya punya buyback, sehingga harga beli 100 gr kosong.
     const todayIso = iso(todayJakarta.getFullYear(), todayJakarta.getMonth() + 1, todayJakarta.getDate());
     if (year === todayJakarta.getFullYear() && month === todayJakarta.getMonth() + 1) {
-      const officialBuy100 = today?.buy100Base || today?.buy100Tax || null;
-      const officialBuyback = buyback?.buybackPerGram || null;
+      const officialBuy100 = today?.buy100Base || today?.buy100Tax || hargaEmasToday?.buy100 || null;
+      const officialBuyback = buyback?.buybackPerGram || hargaEmasToday?.buybackPerGram || null;
       const officialRow = {
         date: todayIso,
         buy100: officialBuy100,

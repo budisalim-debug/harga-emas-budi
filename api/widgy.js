@@ -7,7 +7,7 @@ function ymdJakarta(date = new Date()) {
 
 function formatJakarta(date = new Date()) {
   return new Intl.DateTimeFormat('id-ID', {
-    timeZone: 'Asia/Jakarta', dateStyle: 'medium', timeStyle: 'short'
+    timeZone: 'Asia/Jakarta', dateStyle: 'medium', timeStyle: 'medium'
   }).format(date);
 }
 
@@ -22,110 +22,125 @@ function compactJuta(n) {
 }
 
 async function fetchText(url) {
-  const attempts = [
+  const targets = [
     url,
-    'https://r.jina.ai/http://r.jina.ai/http://example.com'.replace('http://r.jina.ai/http://example.com', url),
+    'https://r.jina.ai/' + url,
     'https://r.jina.ai/http://' + url.replace(/^https?:\/\//, ''),
-    'https://r.jina.ai/http://r.jina.ai/http://example.com'.replace('http://r.jina.ai/http://example.com', url.replace(/^https:\/\//, 'http://'))
+    'https://api.allorigins.win/raw?url=' + encodeURIComponent(url)
   ];
   let lastErr;
-  for (const target of [...new Set(attempts)]) {
+  for (const target of [...new Set(targets)]) {
     try {
       const res = await fetch(target, {
-        headers: { 'user-agent': 'Mozilla/5.0 HargaEmasBudi/1.0' },
+        headers: { 'user-agent': 'Mozilla/5.0 HargaEmasBudiWidgy/2.0' },
         cache: 'no-store'
       });
-      if (res.ok) {
-        const text = await res.text();
-        if (text && text.length > 50) return text;
-      }
-      lastErr = new Error(`HTTP ${res.status} from ${target}`);
-    } catch (e) { lastErr = e; }
+      const text = await res.text();
+      if (res.ok && text && text.length > 50) return text;
+      lastErr = new Error(`HTTP ${res.status} ${text.slice(0, 80)}`);
+    } catch (e) {
+      lastErr = e;
+    }
   }
   throw lastErr || new Error('Gagal mengambil data');
 }
 
-function parseOfficialBuyback(text) {
+function parseNumber(s) {
+  if (!s) return null;
+  const raw = String(s).replace(/\s/g, '');
+  const m = raw.match(/([0-9]{1,3}(?:[.,][0-9]{3})+)/) || raw.match(/([0-9]{7,})/);
+  if (!m) return null;
+  const n = Number(m[1].replace(/[.,]/g, ''));
+  return Number.isFinite(n) ? n : null;
+}
+
+function normalizePerGram(n) {
+  if (!n) return null;
+  // Some parsers return value for 100 gr, some per gram.
+  if (n > 100000000 && n < 500000000) return Math.round(n / 100);
+  if (n > 1000000 && n < 5000000) return n;
+  return null;
+}
+
+function parseBuybackPerGram(text) {
+  const clean = String(text).replace(/\r/g, '\n');
   const patterns = [
     /Harga\s*Buyback\s*:?\s*Rp\s*([0-9.,]+)/i,
-    /buyback[^\n\r]{0,160}?Rp\s*([0-9.,]+)/i,
-    /jual\s*kembali[^\n\r]{0,160}?Rp\s*([0-9.,]+)/i,
-    /pembelian\s*kembali[^\n\r]{0,160}?Rp\s*([0-9.,]+)/i
+    /Harga\s+pembelian\s+kembali\s*:?\s*Rp\s*([0-9.,]+)\s*\/\s*gr/i,
+    /buyback[^\n\r]{0,180}?Rp\s*([0-9.,]+)/i,
+    /harga\s+jual\s+kembali[^\n\r]{0,180}?Rp\s*([0-9.,]+)/i,
+    /pembelian\s+kembali[^\n\r]{0,180}?Rp\s*([0-9.,]+)/i,
+    /dihargai\s*Rp\s*([0-9.,]+)\s*per\s*gram/i
   ];
   for (const p of patterns) {
-    const m = text.match(p);
-    if (m) {
-      const v = Number(m[1].replace(/[,.]/g, ''));
-      if (v > 1000000 && v < 5000000) return v;
-    }
+    const m = clean.match(p);
+    const n = normalizePerGram(parseNumber(m && m[1]));
+    if (n) return n;
   }
   return null;
 }
 
-function parseHargaEmasOrgBuyback(text) {
-  const m = text.match(/Harga\s+pembelian\s+kembali\s*:?\s*Rp\s*([0-9.]+)\s*\/\s*gr/i) ||
-            text.match(/Buyback[^\n\r]{0,120}?Rp\s*([0-9.]+)/i);
-  if (!m) return null;
-  const v = Number(m[1].replace(/\./g, ''));
-  return v > 1000000 && v < 5000000 ? v : null;
+function todayKontanSlug(dateStr) {
+  const months = ['januari','februari','maret','april','mei','juni','juli','agustus','september','oktober','november','desember'];
+  const [y, m, d] = dateStr.split('-').map(Number);
+  return `${d}-${months[m - 1]}-${y}`;
 }
 
-function monthNameID(monthNumber) {
-  return ['Januari','Februari','Maret','April','Mei','Juni','Juli','Agustus','September','Oktober','November','Desember'][monthNumber - 1];
+async function getBuyback() {
+  const today = ymdJakarta();
+  const sources = [
+    { name: 'Logam Mulia ANTAM buyback', url: 'https://www.logammulia.com/sell/gold' },
+    { name: 'Logam Mulia ANTAM buyback', url: 'https://www.logammulia.com/id/sell/gold' },
+    { name: 'Harga-Emas.org', url: 'https://harga-emas.org/history-harga' },
+    { name: 'Harga-Emas.org today', url: `https://harga-emas.org/history-harga/${today.split('-')[0]}/Juni/${today.split('-')[2]}` },
+    { name: 'Kontan Pusat Data', url: `https://pusatdata.kontan.co.id/news/grafik-harga-emas-antam-batangan-${todayKontanSlug(today)}-hari-ini-naik-atau-turun` }
+  ];
+
+  const errors = [];
+  for (const src of sources) {
+    try {
+      const text = await fetchText(src.url);
+      const perGram = parseBuybackPerGram(text);
+      if (perGram) return { perGram, source: src.name };
+      errors.push(`${src.name}: parse kosong`);
+    } catch (e) {
+      errors.push(`${src.name}: ${String(e.message || e).slice(0, 120)}`);
+    }
+  }
+  return { perGram: null, source: null, errors };
 }
 
 export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
-  res.setHeader('Cache-Control', 's-maxage=1800, stale-while-revalidate=3600');
+  res.setHeader('Cache-Control', 's-maxage=900, stale-while-revalidate=3600');
   if (req.method === 'OPTIONS') return res.status(200).end();
 
   const today = ymdJakarta();
-  const [y, m, d] = today.split('-');
-  let perGram = null;
-  let source = '';
-  let warning = null;
+  const result = await getBuyback();
 
-  try {
-    const text = await fetchText('https://www.logammulia.com/id/sell/gold');
-    perGram = parseOfficialBuyback(text);
-    if (perGram) source = 'Logam Mulia ANTAM buyback';
-  } catch (e) {
-    warning = String(e.message || e);
-  }
-
-  if (!perGram) {
-    try {
-      const url = `https://harga-emas.org/history-harga/${y}/${monthNameID(Number(m))}/${d}`;
-      const text = await fetchText(url);
-      perGram = parseHargaEmasOrgBuyback(text);
-      if (perGram) source = 'Harga-Emas.org history';
-    } catch (e) {
-      warning = warning || String(e.message || e);
-    }
-  }
-
-  if (!perGram) {
-    return res.status(502).json({
+  if (!result.perGram) {
+    return res.status(200).json({
       ok: false,
-      error: 'Buyback belum berhasil dibaca dari sumber online',
-      warning,
       date: today,
-      updated_at: new Date().toISOString()
+      updated_at: new Date().toISOString(),
+      updated_jakarta: formatJakarta(),
+      error: 'Buyback belum berhasil dibaca dari sumber online',
+      debug: result.errors || []
     });
   }
 
-  const buyback100 = perGram * 100;
+  const buyback100 = result.perGram * 100;
   return res.status(200).json({
     ok: true,
     date: today,
     updated_at: new Date().toISOString(),
     updated_jakarta: formatJakarta(),
-    source,
-    buyback_per_gram: perGram,
+    source: result.source,
+    buyback_per_gram: result.perGram,
     buyback_100gr: buyback100,
-    buyback_per_gram_text: rupiah(perGram),
+    buyback_per_gram_text: rupiah(result.perGram),
     buyback_100gr_text: rupiah(buyback100),
     buyback_100gr_short: compactJuta(buyback100),
     label: 'ANTAM buyback 100 gr',

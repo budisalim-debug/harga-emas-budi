@@ -1,8 +1,8 @@
 {
-  "name": "harga-emas-budi-html-widgy",
+  "name": "harga-emas-budi-stable-html-widgy",
   "version": "1.0.0",
   "type": "module",
   "scripts": {
-    "build": "echo static html with widgy api"
+    "build": "echo stable html plus widgy api"
   }
 }

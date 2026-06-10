@@ -122,8 +122,8 @@ module.exports = async (req, res) => {
   res.setHeader('Cache-Control', 's-maxage=1800, stale-while-revalidate=3600');
 
   try {
-    const nowJkt = new Date(new Date().toLocaleString('en-US', { timeZone: 'Asia/Jakarta' }));
-    const monthParam = req.query.month || `${nowJkt.getFullYear()}-${String(nowJkt.getMonth()+1).padStart(2,'0')}`;
+    const todayJakarta = new Date(new Date().toLocaleString('en-US', { timeZone: 'Asia/Jakarta' }));
+    const monthParam = req.query.month || `${todayJakarta.getFullYear()}-${String(todayJakarta.getMonth()+1).padStart(2,'0')}`;
     const [yearStr, monthStr] = monthParam.split('-');
     const year = Number(yearStr);
     const month = Number(monthStr);

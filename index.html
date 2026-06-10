@@ -1,0 +1,263 @@
+<!doctype html>
+<html lang="id">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Harga Emas ANTAM 100 gr — Grafik Harian</title>
+  <style>
+    :root{--bg:#0f172a;--card:#111c33;--card2:#0b1222;--muted:#9fb0cc;--text:#eaf0ff;--line:#22314f;--accent:#f5c542;--green:#4ade80;--red:#fb7185;--blue:#60a5fa;--white:#fff;--shadow:0 16px 40px rgba(0,0,0,.35)}
+    *{box-sizing:border-box} body{margin:0;background:linear-gradient(180deg,#0f172a 0%,#111827 100%);color:var(--text);font-family:ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}
+    .wrap{max-width:1180px;margin:auto;padding:24px}.hero{display:flex;gap:16px;align-items:flex-start;justify-content:space-between;margin-bottom:18px}.title h1{font-size:30px;line-height:1.1;margin:0 0 8px}.title p{color:var(--muted);margin:0;font-size:14px;max-width:760px}.badge{background:rgba(245,197,66,.12);border:1px solid rgba(245,197,66,.35);color:#ffe08a;border-radius:999px;padding:8px 12px;font-size:13px;white-space:nowrap}.grid{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin:16px 0}.card{background:rgba(17,28,51,.86);border:1px solid rgba(148,163,184,.16);box-shadow:var(--shadow);border-radius:18px;padding:16px}.metric .label{font-size:12px;color:var(--muted);margin-bottom:8px}.metric .val{font-size:22px;font-weight:800;letter-spacing:-.02em}.metric .sub{font-size:12px;color:var(--muted);margin-top:8px}.toolbar{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin:16px 0}.toolbar select,.toolbar button{background:#17213a;color:var(--text);border:1px solid rgba(148,163,184,.22);border-radius:12px;padding:10px 12px;font-size:14px}.toolbar button{cursor:pointer}.toolbar button.primary{background:linear-gradient(135deg,#f5c542,#f59e0b);color:#1e1600;font-weight:800;border:0}.main{display:grid;grid-template-columns:1.6fr .9fr;gap:14px}.chartBox{height:430px;position:relative}.note{font-size:12px;color:var(--muted);line-height:1.55}.status{margin:10px 0;color:var(--muted);font-size:13px}.ok{color:var(--green)}.warn{color:#fbbf24}.err{color:var(--red)}table{width:100%;border-collapse:collapse;font-size:13px}th,td{border-bottom:1px solid rgba(148,163,184,.13);padding:10px 8px;text-align:right}th:first-child,td:first-child{text-align:left}th{color:var(--muted);font-weight:650}.pill{display:inline-block;padding:3px 8px;border-radius:999px;background:rgba(96,165,250,.12);color:#bfdbfe;font-size:12px}.sourceLinks a{color:#bfdbfe;text-decoration:none}.sourceLinks a:hover{text-decoration:underline}.small{font-size:12px}.footer{margin-top:18px;color:var(--muted);font-size:12px;line-height:1.55}.legend{display:flex;gap:14px;align-items:center;margin:6px 0 0;font-size:13px;color:var(--muted)}.dot{width:10px;height:10px;border-radius:99px;display:inline-block;margin-right:6px}.dot.buy{background:var(--accent)}.dot.sell{background:var(--blue)}.dot.spread{background:var(--red)}@media(max-width:900px){.grid{grid-template-columns:repeat(2,1fr)}.main{grid-template-columns:1fr}.hero{display:block}.badge{display:inline-block;margin-top:12px}.chartBox{height:360px}}@media(max-width:520px){.grid{grid-template-columns:1fr}.wrap{padding:16px}.title h1{font-size:24px}}
+  </style>
+</head>
+<body>
+<div class="wrap">
+  <div class="hero">
+    <div class="title">
+      <h1>Harga Emas ANTAM 100 gr</h1>
+      <p>Grafik harian harga beli pecahan 100 gr dan estimasi nilai jual kembali/buyback 100 gr. Data diambil saat app dibuka dari Logam Mulia ANTAM, Harga-Emas.org, dan Kontan/Katadata sebagai fallback historis.</p>
+    </div>
+    <div class="badge" id="freshBadge">Memuat data…</div>
+  </div>
+
+  <div class="grid">
+    <div class="card metric"><div class="label">Harga beli 100 gr</div><div class="val" id="buy100">—</div><div class="sub" id="buySub">Pecahan 100 gr</div></div>
+    <div class="card metric"><div class="label">Nilai jual/buyback 100 gr</div><div class="val" id="sell100">—</div><div class="sub" id="sellSub">100 × buyback/gram</div></div>
+    <div class="card metric"><div class="label">Spread</div><div class="val" id="spread100">—</div><div class="sub" id="spreadPct">—</div></div>
+    <div class="card metric"><div class="label">Update terakhir</div><div class="val" id="lastUpdate" style="font-size:18px">—</div><div class="sub" id="lastSource">—</div></div>
+  </div>
+
+  <div class="card">
+    <div class="toolbar">
+      <label>Bulan: <select id="monthSelect"></select></label>
+      <button class="primary" id="refreshBtn">Refresh dari web</button>
+      <button id="exportBtn">Export CSV</button>
+      <button id="clearCacheBtn">Hapus cache</button>
+    </div>
+    <div class="status" id="status">Menyiapkan grafik…</div>
+    <div class="chartBox"><canvas id="chart"></canvas></div>
+    <div class="legend"><span><i class="dot buy"></i>Beli 100 gr</span><span><i class="dot sell"></i>Jual/buyback 100 gr</span><span><i class="dot spread"></i>Spread</span></div>
+  </div>
+
+  <div class="main" style="margin-top:14px">
+    <div class="card">
+      <h3 style="margin:0 0 10px">History harian</h3>
+      <div style="overflow:auto"><table id="historyTable"><thead><tr><th>Tanggal</th><th>Beli 100 gr</th><th>Buyback 100 gr</th><th>Spread</th><th>Sumber</th></tr></thead><tbody></tbody></table></div>
+    </div>
+    <div class="card">
+      <h3 style="margin:0 0 10px">Sumber & cara baca</h3>
+      <div class="note sourceLinks">
+        <p><b>Prioritas data:</b></p>
+        <p>1. <a href="https://www.logammulia.com/id/harga-emas-hari-ini" target="_blank">Logam Mulia ANTAM</a> untuk harga hari ini.</p>
+        <p>2. <a href="https://www.logammulia.com/id/sell/gold" target="_blank">Simulasi buyback ANTAM</a> untuk buyback hari ini.</p>
+        <p>3. <a href="https://harga-emas.org/history-harga" target="_blank">Harga-Emas.org</a> untuk history pecahan 100 gr per tanggal.</p>
+        <p>4. <a href="https://pusatdata.kontan.co.id" target="_blank">Kontan Pusat Data</a> / Katadata untuk history buyback bila halaman ANTAM tidak menyediakan arsip harian publik.</p>
+        <p class="small">Catatan: buyback ANTAM berlaku per gram, jadi nilai jual 100 gr = harga buyback/gram × 100. Pajak PPh 22 buyback dapat memengaruhi uang bersih diterima.</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="footer">
+    App ini membaca data dari halaman publik saat dibuka. Kalau jaringan/proxy sedang dibatasi, app akan tetap menampilkan data cache/fallback terakhir dan memberi tanda pada kolom sumber.
+  </div>
+</div>
+<script>
+const MONTHS_ID = ["Januari","Februari","Maret","April","Mei","Juni","Juli","Agustus","September","Oktober","November","Desember"];
+const now = new Date();
+const STORAGE_KEY = "emas_antam_100gr_history_v3";
+const fallbackData = [
+ {date:"2026-06-01", buy100:274112000, buyback100:260900000, source:"seed: Harga-Emas + Kontan"},
+ {date:"2026-06-02", buy100:271612000, buyback100:null, source:"seed: Harga-Emas"},
+ {date:"2026-06-03", buy100:271612000, buyback100:null, source:"seed: Harga-Emas"},
+ {date:"2026-06-04", buy100:270112000, buyback100:257100000, source:"seed: Harga-Emas + Katadata"},
+ {date:"2026-06-05", buy100:271212000, buyback100:null, source:"seed: Harga-Emas"},
+ {date:"2026-06-06", buy100:268012000, buyback100:null, source:"seed: Harga-Emas"},
+ {date:"2026-06-07", buy100:268012000, buyback100:null, source:"seed: Harga-Emas"},
+ {date:"2026-06-08", buy100:268512000, buyback100:null, source:"seed: Harga-Emas"},
+ {date:"2026-06-09", buy100:267512000, buyback100:252700000, source:"seed: Harga-Emas + Kontan"},
+ {date:"2026-06-10", buy100:265512000, buyback100:248700000, source:"seed: Harga-Emas + Katadata"}
+];
+let data = loadData();
+let chartCanvas, ctx;
+function loadData(){
+ try{ const saved = JSON.parse(localStorage.getItem(STORAGE_KEY)||"[]"); return mergeRows(fallbackData.concat(saved)); }catch(e){ return fallbackData.slice(); }
+}
+function saveData(){ localStorage.setItem(STORAGE_KEY, JSON.stringify(data)); }
+function mergeRows(rows){
+ const map = new Map();
+ rows.filter(r=>r && r.date).forEach(r=>{
+   const prev = map.get(r.date)||{};
+   map.set(r.date, {...prev, ...r, buy100:r.buy100??prev.buy100??null, buyback100:r.buyback100??prev.buyback100??null, source:r.source||prev.source||""});
+ });
+ return Array.from(map.values()).sort((a,b)=>a.date.localeCompare(b.date));
+}
+function rupiah(n){ return n==null || isNaN(n) ? "—" : new Intl.NumberFormat("id-ID",{style:"currency",currency:"IDR",maximumFractionDigits:0}).format(n); }
+function pct(n){ return n==null || isNaN(n) ? "—" : new Intl.NumberFormat("id-ID",{maximumFractionDigits:2}).format(n)+"%"; }
+function ymd(d){ return d.toISOString().slice(0,10); }
+function daysInMonth(y,m){ return new Date(y,m+1,0).getDate(); }
+function monthKeyFromDateStr(s){ return s.slice(0,7); }
+function displayDate(s){ const d=new Date(s+"T00:00:00"); return d.toLocaleDateString("id-ID",{day:"2-digit",month:"short",year:"numeric"}); }
+function availableMonths(){
+ const set = new Set(data.map(r=>monthKeyFromDateStr(r.date)));
+ const currentKey = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,"0")}`;
+ set.add(currentKey);
+ return Array.from(set).sort().reverse();
+}
+function initMonthSelect(){
+ const sel = document.getElementById("monthSelect"); sel.innerHTML = "";
+ availableMonths().forEach(k=>{ const [y,m]=k.split("-"); const opt=document.createElement("option"); opt.value=k; opt.textContent=`${MONTHS_ID[+m-1]} ${y}`; sel.appendChild(opt); });
+ sel.value = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,"0")}`;
+ sel.onchange = render;
+}
+function render(){
+ const key = document.getElementById("monthSelect").value;
+ const rows = data.filter(r=>monthKeyFromDateStr(r.date)===key).sort((a,b)=>a.date.localeCompare(b.date));
+ const latest = rows.filter(r=>r.buy100||r.buyback100).at(-1) || data.at(-1);
+ updateCards(latest);
+ renderTable(rows);
+ drawChart(rows);
+}
+function updateCards(r){
+ document.getElementById("buy100").textContent = rupiah(r?.buy100);
+ document.getElementById("sell100").textContent = rupiah(r?.buyback100);
+ const sp = (r?.buy100!=null && r?.buyback100!=null) ? r.buy100-r.buyback100 : null;
+ document.getElementById("spread100").textContent = rupiah(sp);
+ document.getElementById("spreadPct").textContent = sp!=null ? `${pct(sp/r.buy100*100)} dari harga beli` : "Menunggu data buyback";
+ document.getElementById("lastUpdate").textContent = r ? displayDate(r.date) : "—";
+ document.getElementById("lastSource").textContent = r?.source || "—";
+ document.getElementById("freshBadge").textContent = r ? `Data terakhir: ${displayDate(r.date)}` : "Belum ada data";
+}
+function renderTable(rows){
+ const tbody = document.querySelector("#historyTable tbody"); tbody.innerHTML="";
+ rows.forEach(r=>{
+   const tr=document.createElement("tr"); const sp=(r.buy100!=null&&r.buyback100!=null)?r.buy100-r.buyback100:null;
+   tr.innerHTML = `<td>${displayDate(r.date)}</td><td>${rupiah(r.buy100)}</td><td>${rupiah(r.buyback100)}</td><td>${rupiah(sp)}</td><td><span class="pill">${escapeHtml(r.source||"-")}</span></td>`;
+   tbody.appendChild(tr);
+ });
+}
+function escapeHtml(s){ return String(s).replace(/[&<>"']/g, c=>({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"}[c])); }
+function drawChart(rows){
+ const canvas = document.getElementById("chart"); const rect = canvas.parentElement.getBoundingClientRect(); const dpr=window.devicePixelRatio||1;
+ canvas.width = Math.floor(rect.width*dpr); canvas.height=Math.floor(rect.height*dpr); canvas.style.width=rect.width+"px"; canvas.style.height=rect.height+"px";
+ const c = canvas.getContext("2d"); c.scale(dpr,dpr); c.clearRect(0,0,rect.width,rect.height);
+ const W=rect.width,H=rect.height, pad={l:74,r:22,t:26,b:46};
+ const allVals=[]; rows.forEach(r=>{ if(r.buy100) allVals.push(r.buy100); if(r.buyback100) allVals.push(r.buyback100); });
+ if(!allVals.length){ c.fillStyle="#9fb0cc"; c.fillText("Belum ada data untuk bulan ini", 40, 80); return; }
+ let min=Math.min(...allVals), max=Math.max(...allVals); const span=max-min||1; min-=span*.12; max+=span*.12;
+ const x = i => pad.l + (rows.length<=1?0:i*(W-pad.l-pad.r)/(rows.length-1));
+ const y = v => H-pad.b - (v-min)*(H-pad.t-pad.b)/(max-min);
+ c.strokeStyle="rgba(148,163,184,.18)"; c.lineWidth=1; c.font="12px system-ui"; c.fillStyle="#9fb0cc";
+ for(let i=0;i<5;i++){ const val=min+(max-min)*i/4; const yy=y(val); c.beginPath(); c.moveTo(pad.l,yy); c.lineTo(W-pad.r,yy); c.stroke(); c.fillText(rupiah(val).replace(",00","").replace("Rp", "Rp "), 6, yy+4); }
+ rows.forEach((r,i)=>{ if(i%Math.ceil(rows.length/8)===0 || i===rows.length-1){ c.fillStyle="#9fb0cc"; c.textAlign="center"; c.fillText(String(new Date(r.date+"T00:00:00").getDate()), x(i), H-18); }}); c.textAlign="left";
+ function line(key, color){
+   c.strokeStyle=color; c.lineWidth=3; c.beginPath(); let started=false;
+   rows.forEach((r,i)=>{ const v=r[key]; if(v==null) return; const xx=x(i), yy=y(v); if(!started){c.moveTo(xx,yy); started=true;} else c.lineTo(xx,yy); }); c.stroke();
+   rows.forEach((r,i)=>{ const v=r[key]; if(v==null) return; const xx=x(i), yy=y(v); c.fillStyle=color; c.beginPath(); c.arc(xx,yy,4,0,Math.PI*2); c.fill(); });
+ }
+ line("buy100", "#f5c542"); line("buyback100", "#60a5fa");
+ c.strokeStyle="#22314f"; c.strokeRect(pad.l,pad.t,W-pad.l-pad.r,H-pad.t-pad.b);
+ canvas.onmousemove = e => {
+   const bb=canvas.getBoundingClientRect(), mx=e.clientX-bb.left; let nearest=0, nd=Infinity; rows.forEach((r,i)=>{const dist=Math.abs(x(i)-mx); if(dist<nd){nd=dist; nearest=i;}});
+   if(nd<30){ canvas.title = `${displayDate(rows[nearest].date)}\nBeli: ${rupiah(rows[nearest].buy100)}\nBuyback: ${rupiah(rows[nearest].buyback100)}`; } else canvas.title="";
+ };
+}
+async function fetchText(url){
+ const jina = "https://r.jina.ai/" + url;
+ const allorigins = "https://api.allorigins.win/raw?url=" + encodeURIComponent(url);
+ const attempts = [jina, allorigins, url];
+ let lastErr;
+ for(const u of attempts){
+   try{ const res = await fetch(u, {cache:"no-store"}); if(res.ok){ const txt=await res.text(); if(txt && txt.length>80) return txt; } }
+   catch(e){ lastErr=e; }
+ }
+ throw lastErr || new Error("Gagal mengambil data");
+}
+function parseRupiah(s){ if(!s) return null; const m=String(s).match(/Rp\s?([0-9.]+)(?:,\d+)?/i) || String(s).match(/([0-9]{1,3}(?:\.[0-9]{3})+)/); return m ? Number(m[1].replace(/\./g,"")) : null; }
+function parseHargaEmasOrg(text){
+ const clean = text.replace(/\r/g,"");
+ const lines = clean.split(/\n+/).map(x=>x.trim()).filter(Boolean);
+ let buy100=null;
+ for(let i=0;i<lines.length;i++){
+   if(lines[i]==="100"){
+     for(let j=i+1;j<Math.min(i+8,lines.length);j++){
+       const v=parseRupiah(lines[j]); if(v && v>100000000){ buy100=v; break; }
+     }
+     if(buy100) break;
+   }
+ }
+ const currentBuyback = (clean.match(/Harga pembelian kembali:\s*Rp\s*([0-9.]+)\s*\/gr/i)||[])[1];
+ return {buy100, buyback100: currentBuyback?Number(currentBuyback.replace(/\./g,""))*100:null};
+}
+function slugDate(dateStr){
+ const d=new Date(dateStr+"T00:00:00");
+ return `${d.getDate()}-${MONTHS_ID[d.getMonth()].toLowerCase()}-${d.getFullYear()}`;
+}
+function parseBuybackFromText(text){
+ const patterns = [
+   /buyback[^\n\r]{0,140}?Rp\s*([0-9.]+)\s*(?:per gram|\/gram|\/gr|pergrm)?/i,
+   /harga beli kembali[^\n\r]{0,140}?Rp\s*([0-9.]+)/i,
+   /pembelian kembali[^\n\r]{0,140}?Rp\s*([0-9.]+)/i,
+   /dihargai\s*Rp\s*([0-9.]+)\s*per gram/i,
+   /cuma dihargai\s*Rp\s*([0-9.]+)\s*per gram/i
+ ];
+ for(const p of patterns){ const m=text.match(p); if(m){ const v=Number(m[1].replace(/\./g,"")); if(v>1000000 && v<4000000) return v*100; } }
+ return null;
+}
+async function fetchDay(dateStr){
+ const d=new Date(dateStr+"T00:00:00"), year=d.getFullYear(), month=MONTHS_ID[d.getMonth()], day=String(d.getDate()).padStart(2,"0");
+ const urlHarga = `https://harga-emas.org/history-harga/${year}/${month}/${day}`;
+ let row={date:dateStr, buy100:null, buyback100:null, source:""};
+ try{
+   const txt=await fetchText(urlHarga); const parsed=parseHargaEmasOrg(txt); row.buy100=parsed.buy100; if(parsed.buyback100) row.buyback100=parsed.buyback100; row.source += "Harga-Emas";
+ }catch(e){ row.source += "Harga-Emas gagal"; }
+ const kontanUrl = `https://pusatdata.kontan.co.id/news/grafik-harga-emas-antam-batangan-${slugDate(dateStr)}-hari-ini-naik-atau-turun`;
+ try{
+   const txt=await fetchText(kontanUrl); const bb=parseBuybackFromText(txt); if(bb){ row.buyback100=bb; row.source += row.source?" + Kontan":"Kontan"; }
+ }catch(e){ /* ignore */ }
+ // Today official ANTAM pages override when available
+ if(dateStr===ymd(new Date())){
+   try{ const txt=await fetchText("https://www.logammulia.com/id/harga-emas-hari-ini"); const p=parseLogamMuliaToday(txt); if(p.buy100){ row.buy100=p.buy100; row.source += row.source?" + ANTAM":"ANTAM"; } }catch(e){}
+   try{ const txt=await fetchText("https://www.logammulia.com/id/sell/gold"); const bb=parseOfficialBuyback(txt); if(bb){ row.buyback100=bb; row.source += row.source?" + ANTAM buyback":"ANTAM buyback"; } }catch(e){}
+ }
+ return row;
+}
+function parseLogamMuliaToday(txt){
+ const lines=txt.split(/\n+/).map(s=>s.trim()).filter(Boolean); let buy100=null;
+ for(let i=0;i<lines.length;i++){
+   if(/^100\s*gr$/i.test(lines[i]) || /^100 gr\s+/i.test(lines[i])){
+     const chunk=lines.slice(i,i+5).join(" "); const nums=chunk.match(/[0-9]{1,3}(?:,[0-9]{3})+/g)||chunk.match(/[0-9]{1,3}(?:\.[0-9]{3})+/g);
+     if(nums && nums.length){ buy100=Number(nums[0].replace(/[,.]/g,"")); break; }
+   }
+ }
+ return {buy100};
+}
+function parseOfficialBuyback(txt){ const m=txt.match(/Harga\s*Buyback:\s*Rp\s*([0-9.,]+)/i); return m ? Number(m[1].replace(/[,.]/g,""))*100 : null; }
+async function refreshMonth(){
+ const btn=document.getElementById("refreshBtn"); btn.disabled=true;
+ const key=document.getElementById("monthSelect").value; const [y,m]=key.split("-").map(Number); const last = (y===now.getFullYear() && m===now.getMonth()+1) ? now.getDate() : daysInMonth(y,m-1);
+ const status=document.getElementById("status"); status.innerHTML=`<span class="warn">Mengambil data ${MONTHS_ID[m-1]} ${y}…</span>`;
+ const rows=[];
+ for(let day=1; day<=last; day++){
+   const ds=`${y}-${String(m).padStart(2,"0")}-${String(day).padStart(2,"0")}`;
+   status.innerHTML=`<span class="warn">Memuat ${day}/${last}…</span>`;
+   try{ rows.push(await fetchDay(ds)); }catch(e){ console.warn(e); }
+ }
+ data = mergeRows(data.concat(rows.filter(r=>r.buy100||r.buyback100)));
+ saveData(); initMonthSelect(); document.getElementById("monthSelect").value=key; render();
+ status.innerHTML=`<span class="ok">Selesai refresh. ${rows.filter(r=>r.buy100||r.buyback100).length} hari terbaca.</span>`;
+ btn.disabled=false;
+}
+function exportCSV(){
+ const rows = data.slice().sort((a,b)=>a.date.localeCompare(b.date));
+ const csv = ["date,buy_100gr,buyback_100gr,spread,source"].concat(rows.map(r=>`${r.date},${r.buy100??""},${r.buyback100??""},${(r.buy100&&r.buyback100)?r.buy100-r.buyback100:""},"${(r.source||"").replace(/"/g,'""')}"`)).join("\n");
+ const blob=new Blob([csv],{type:"text/csv;charset=utf-8"}); const a=document.createElement("a"); a.href=URL.createObjectURL(blob); a.download="harga-emas-antam-100gr.csv"; a.click(); URL.revokeObjectURL(a.href);
+}
+document.getElementById("refreshBtn").onclick=refreshMonth;
+document.getElementById("exportBtn").onclick=exportCSV;
+document.getElementById("clearCacheBtn").onclick=()=>{ localStorage.removeItem(STORAGE_KEY); data=fallbackData.slice(); initMonthSelect(); render(); document.getElementById("status").innerHTML='<span class="ok">Cache dihapus. Data fallback ditampilkan.</span>'; };
+window.addEventListener("resize", render);
+initMonthSelect(); render();
+setTimeout(()=>{ refreshMonth().catch(e=>{ document.getElementById("status").innerHTML=`<span class="err">Auto-refresh gagal: ${escapeHtml(e.message||e)}</span>`; }); }, 500);
+</script>
+</body>
+</html>
